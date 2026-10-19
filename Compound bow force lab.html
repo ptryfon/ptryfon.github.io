@@ -1,0 +1,1143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Compound bow force lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&display=swap">
+<style>
+:root{
+  --paper:#E6EBED; --panel:#F4F7F8; --panel-2:#DAE2E5; --ink:#16232C; --muted:#4F606A; --rule:#C3CED3;
+  --red:#D3203A; --gold:#E3A400; --gold-ink:#8C6200; --blue:#0A7DB0; --scene:#D9E1E4; --grid:#AEBDC4;
+  --font:"Archivo", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111D26; --panel:#172733; --panel-2:#1F3240; --ink:#E2EAED; --muted:#91A4AE; --rule:#2A3D4A;
+    --red:#FF4D60; --gold:#FFC23D; --gold-ink:#FFC23D; --blue:#3BB8EC; --scene:#0D1720; --grid:#24394A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111D26; --panel:#172733; --panel-2:#1F3240; --ink:#E2EAED; --muted:#91A4AE; --rule:#2A3D4A;
+  --red:#FF4D60; --gold:#FFC23D; --gold-ink:#FFC23D; --blue:#3BB8EC; --scene:#0D1720; --grid:#24394A;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--paper)}
+body{height:100%;margin:0;font-family:var(--font);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,420px);height:100%}
+.stage{display:flex;flex-direction:column;min-width:0;min-height:0}
+.viewport{position:relative;flex:1 1 auto;min-height:0;background:var(--scene);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#three{position:absolute;inset:0;width:100%;height:100%;display:block}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.tag{position:absolute;left:0;top:0;white-space:nowrap;font-size:12.5px;font-weight:600;font-stretch:82%;line-height:1.2;
+  padding:3px 8px 3px 7px;border-radius:6px;background:var(--panel);background:color-mix(in srgb,var(--panel) 86%,transparent);
+  border:1px solid var(--rule);display:flex;gap:6px;align-items:center;font-variant-numeric:tabular-nums;will-change:transform}
+.tag i{width:8px;height:8px;border-radius:50%;flex:none}
+.tag.part{font-weight:500;font-stretch:90%;color:var(--muted);border-style:dashed}
+
+.hud{position:absolute;top:14px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;pointer-events:none}
+.hud h1{margin:0 0 10px;font-size:clamp(21px,2.3vw,30px);line-height:.98;font-weight:780;font-stretch:122%;letter-spacing:-.01em}
+.phases{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px;max-width:560px}
+.phases li{font-size:12px;font-weight:600;font-stretch:82%;padding:3px 8px;border-radius:999px;border:1px solid var(--rule);color:var(--muted);background:var(--panel);background:color-mix(in srgb,var(--panel) 70%,transparent);transition:background-color .2s,color .2s}
+.phases li.done{color:var(--ink)}
+.phases li.now{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.views{display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--panel);border:1px solid var(--rule);pointer-events:auto;flex:none}
+.views button{border:0;background:transparent;padding:6px 10px;border-radius:7px;font-size:13px;font-weight:600;font-stretch:85%;cursor:pointer;color:var(--muted)}
+.views button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.callout{position:absolute;left:16px;bottom:16px;max-width:min(440px,calc(100% - 32px));padding:12px 14px 13px;border-radius:12px;
+  background:var(--panel);background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--rule);pointer-events:none}
+.callout h2{margin:0 0 3px;font-size:16px;font-weight:720;font-stretch:105%}
+.callout p{margin:0;font-size:14px;line-height:1.45}
+.hint{position:absolute;right:16px;bottom:16px;margin:0;font-size:12.5px;color:var(--muted);max-width:220px;text-align:right;pointer-events:none}
+
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:12px 16px;border-top:1px solid var(--rule);background:var(--paper)}
+.drawctl{display:flex;align-items:center;gap:12px;flex:1 1 300px;min-width:0}
+.drawctl label{font-weight:650;font-stretch:90%}
+.drawctl input{flex:1;min-width:0;accent-color:var(--red)}
+.drawctl output{font-variant-numeric:tabular-nums;font-weight:650;font-stretch:80%;font-size:17px;min-width:4.2ch;text-align:right}
+.btns{display:flex;gap:8px;flex:none}
+.btn{border:1.5px solid var(--ink);background:transparent;border-radius:9px;padding:8px 14px;font-weight:650;font-stretch:92%;cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.fire{border-color:var(--red);color:var(--red)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.panel{overflow-y:auto;border-left:1px solid var(--rule);padding:20px 22px 40px;background:var(--paper)}
+.panel section+section{margin-top:30px}
+.panel h2{font-size:18px;line-height:1.2;margin:0 0 4px;font-weight:720;font-stretch:108%}
+.panel .sub{margin:0 0 12px;color:var(--muted);font-size:13.5px;line-height:1.45}
+.readouts{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;margin:0}
+.readouts div{min-width:0}
+.readouts dt{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;line-height:1.25}
+.readouts dt i{width:9px;height:9px;border-radius:2px;flex:none}
+.readouts dd{margin:2px 0 0;font-size:25px;line-height:1.05;font-weight:650;font-stretch:72%;font-variant-numeric:tabular-nums;letter-spacing:-.005em}
+.readouts dd small{font-size:13px;font-weight:500;font-stretch:90%;color:var(--muted);margin-left:3px;letter-spacing:0}
+.chart{display:block;width:100%;border-radius:10px;background:var(--panel);border:1px solid var(--rule)}
+#forceChart{height:230px}
+#camChart{height:270px}
+#relChart{height:170px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:3px;border-radius:2px}
+.legend i.dash{background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 7px)!important}
+.shot{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 14px;margin:12px 0 0}
+.shot dt{font-size:12.5px;color:var(--muted);line-height:1.25}
+.shot dd{margin:2px 0 0;font-size:21px;font-weight:650;font-stretch:72%;font-variant-numeric:tabular-nums;line-height:1.1}
+.shot dd small{font-size:12px;font-weight:500;color:var(--muted);margin-left:2px}
+.split{margin-top:14px}
+.split .bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--panel-2)}
+.split .bar span{display:block;height:100%;transition:width .4s}
+.split ul{list-style:none;padding:0;margin:8px 0 0;font-size:13px}
+.split li{display:flex;gap:8px;align-items:baseline;justify-content:space-between;padding:2px 0}
+.split li b{font-weight:650;font-variant-numeric:tabular-nums;font-stretch:85%}
+.split li span{display:inline-flex;gap:7px;align-items:center}
+.split li i{width:9px;height:9px;border-radius:2px;flex:none;display:inline-block}
+.empty{color:var(--muted);font-size:13.5px;margin:10px 0 0}
+
+fieldset{border:0;margin:0;padding:0;min-width:0}
+fieldset:disabled{opacity:.55}
+.set{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;margin-bottom:12px}
+.set label{font-size:14px;font-weight:550}
+.set output{font-variant-numeric:tabular-nums;font-weight:650;font-stretch:80%;font-size:15px}
+.set input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--ink)}
+.set select{grid-column:2;border:1px solid var(--rule);background:var(--panel);border-radius:7px;padding:4px 6px}
+.toggles{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.toggles label{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;padding:5px 10px 5px 8px;border:1px solid var(--rule);border-radius:999px;cursor:pointer;background:var(--panel)}
+.toggles input{accent-color:var(--ink);margin:0}
+
+.explain ol{list-style:none;padding:0;margin:14px 0 0;counter-reset:s}
+.explain li{counter-increment:s;position:relative;padding-left:34px;margin-bottom:18px}
+.explain li::before{content:counter(s);position:absolute;left:0;top:1px;width:23px;height:23px;border-radius:50%;border:1.5px solid var(--ink);
+  font-size:12.5px;font-weight:700;display:grid;place-items:center;font-stretch:90%}
+.explain h3{margin:0 0 3px;font-size:15.5px;font-weight:700;font-stretch:100%}
+.explain p{margin:0 0 6px;font-size:14.5px;line-height:1.55;max-width:62ch}
+.explain .eq{font-weight:650;font-stretch:88%;white-space:nowrap}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.note{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:6px}
+
+@media (max-width: 899px){
+  html,body{height:auto}
+  .app{display:block;height:auto}
+  .viewport{height:64vh;min-height:380px;max-height:680px;flex:none}
+  .panel{border-left:0;border-top:1px solid var(--rule);overflow:visible}
+  .hud{flex-direction:column;gap:8px}
+  .hud h1{margin-bottom:6px}
+  .phases{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none;pointer-events:auto}
+  .phases li{flex:none}
+  .callout{left:10px;right:10px;bottom:10px;max-width:none;padding:9px 11px}
+  .callout h2{font-size:14.5px}
+  .callout p{font-size:13px}
+  .hint{display:none}
+  .viewport{touch-action:pan-y}
+}
+@media (prefers-reduced-motion: reduce){
+  .phases li,.split .bar span{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="stage" aria-label="3D simulation">
+    <div class="viewport" id="viewport">
+      <canvas id="three" aria-label="3D model of a compound bow. Drag the nock back to draw, let go to shoot."></canvas>
+      <div class="labels" id="labels"></div>
+      <div class="hud">
+        <div>
+          <h1>Compound bow<br>force lab</h1>
+          <ol class="phases" id="phases" aria-label="Shot cycle"></ol>
+        </div>
+        <div class="views" role="group" aria-label="Camera view">
+          <button type="button" data-view="three" aria-pressed="true">3D</button>
+          <button type="button" data-view="side" aria-pressed="false">Side</button>
+          <button type="button" data-view="cam" aria-pressed="false">Cam</button>
+          <button type="button" data-view="archer" aria-pressed="false">Archer</button>
+        </div>
+      </div>
+      <span class="sr" id="live" aria-live="polite"></span>
+      <div class="callout" id="callout"><h2></h2><p></p></div>
+      <p class="hint">Drag the nock back and let go to shoot. Drag anywhere else to turn the view, scroll to zoom.</p>
+    </div>
+    <div class="controls">
+      <div class="drawctl">
+        <label for="draw">Draw</label>
+        <input type="range" id="draw" min="0" max="1000" step="1" value="0">
+        <output id="drawOut" for="draw">0.0"</output>
+      </div>
+      <div class="btns">
+        <button type="button" class="btn fire" id="btnRelease" disabled>Release</button>
+        <button type="button" class="btn primary" id="btnAuto">Draw and shoot</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <section aria-labelledby="h-live">
+      <h2 id="h-live">Right now</h2>
+      <p class="sub">Colours match the arrows on the model.</p>
+      <dl class="readouts">
+        <div><dt><i style="background:var(--red)"></i><span id="pullLabel">Your pull</span></dt><dd><span id="rPull">0</span><small>lb</small></dd></div>
+        <div><dt><i style="background:var(--ink)"></i>String tension</dt><dd><span id="rString">0</span><small>lb</small></dd></div>
+        <div><dt><i style="background:var(--blue)"></i>Load on each limb</dt><dd><span id="rLimb">0</span><small>lb</small></dd></div>
+        <div><dt><i style="background:var(--gold)"></i>Energy in the limbs</dt><dd><span id="rEnergy">0</span><small>ft·lb</small></dd></div>
+        <div><dt>Cam leverage</dt><dd><span id="rLev">1.0</span><small>×</small></dd></div>
+        <div><dt>Cam rotation</dt><dd><span id="rRot">0</span><small>°</small></dd></div>
+      </dl>
+    </section>
+
+    <section aria-labelledby="h-curve">
+      <h2 id="h-curve">Draw-force curve</h2>
+      <p class="sub">Weight you feel at each inch of draw. The shaded area is the energy stored so far.</p>
+      <canvas class="chart" id="forceChart" role="img" aria-label="Draw force versus draw length"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--red)"></i>Compound</span>
+        <span id="legRecurve"><i class="dash"></i>Recurve, same peak weight</span>
+        <span><i style="background:var(--gold)"></i>Stored energy</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-cam">
+      <h2 id="h-cam">Inside the cam</h2>
+      <p class="sub">The cam is a lever that changes its own ratio as it turns. Torque balances around the axle.</p>
+      <canvas class="chart" id="camChart" role="img" aria-label="Top cam with string and cable lever arms"></canvas>
+    </section>
+
+    <section aria-labelledby="h-shot">
+      <h2 id="h-shot">Last shot</h2>
+      <p class="sub">The power stroke in slow motion: force on the nock and arrow speed until it leaves the string.</p>
+      <canvas class="chart" id="relChart" role="img" aria-label="Force on arrow and arrow speed over time"></canvas>
+      <div id="shotEmpty" class="empty">Shoot an arrow to record its power stroke.</div>
+      <div id="shotData" hidden>
+        <dl class="shot">
+          <div><dt>Arrow speed</dt><dd><span id="sFps">0</span><small>fps</small></dd></div>
+          <div><dt>Arrow energy</dt><dd><span id="sKe">0</span><small>ft·lb</small></dd></div>
+          <div><dt>Efficiency</dt><dd><span id="sEff">0</span><small>%</small></dd></div>
+          <div><dt>Time on string</dt><dd><span id="sMs">0</span><small>ms</small></dd></div>
+          <div><dt>Peak acceleration</dt><dd><span id="sG">0</span><small>g</small></dd></div>
+          <div><dt>Speed</dt><dd><span id="sMps">0</span><small>m/s</small></dd></div>
+        </dl>
+        <div class="split">
+          <div class="bar" aria-hidden="true"><span id="bA" style="background:var(--gold)"></span><span id="bB" style="background:var(--blue)"></span><span id="bC" style="background:var(--muted)"></span></div>
+          <ul>
+            <li><span><i style="background:var(--gold)"></i>Carried off by the arrow</span><b id="pA">0%</b></li>
+            <li><span><i style="background:var(--blue)"></i>Left in moving limbs, cams and string</span><b id="pB">0%</b></li>
+            <li><span><i style="background:var(--muted)"></i>Lost as heat inside the limbs</span><b id="pC">0%</b></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-set">
+      <h2 id="h-set">Set up the bow</h2>
+      <fieldset id="settings">
+        <div class="set"><label for="sWeight">Peak draw weight</label><output id="oWeight">70 lb</output><input type="range" id="sWeight" min="40" max="80" step="1" value="70"></div>
+        <div class="set"><label for="sLetoff">Let-off</label><output id="oLetoff">80%</output><input type="range" id="sLetoff" min="60" max="90" step="1" value="80"></div>
+        <div class="set"><label for="sDraw">Draw length</label><output id="oDraw">29.0"</output><input type="range" id="sDraw" min="26" max="31" step="0.5" value="29"></div>
+        <div class="set"><label for="sArrow">Arrow weight</label><output id="oArrow">400 gr</output><input type="range" id="sArrow" min="300" max="550" step="10" value="400"></div>
+        <div class="set"><label for="sSlow">Slow motion</label><select id="sSlow"><option value="100">100×</option><option value="250" selected>250×</option><option value="1000">1000×</option></select></div>
+      </fieldset>
+      <div class="toggles" role="group" aria-label="Show on the model">
+        <label><input type="checkbox" id="tForces" checked>Force arrows</label>
+        <label><input type="checkbox" id="tGlow" checked>Energy glow</label>
+        <label><input type="checkbox" id="tParts">Part names</label>
+        <label><input type="checkbox" id="tRecurve" checked>Recurve comparison</label>
+      </div>
+    </section>
+
+    <section class="explain" aria-labelledby="h-how">
+      <h2 id="h-how">How the force is made and handed to the arrow</h2>
+      <ol>
+        <li>
+          <h3>The limbs are the spring</h3>
+          <p>Every bit of energy you put in ends up as bending in the limbs. Pulling the string turns the cams, the cams wind in the cables, and each cable pulls the opposite limb tip toward the middle. The limbs are already bent at rest (preloaded by the limb bolts), which is why the string is tight before you touch it.</p>
+        </li>
+        <li>
+          <h3>The cams are levers with a changing ratio</h3>
+          <p>Each cam has two tracks: the string track pays out string, the cable track (module) winds up cable. Around the axle the torques balance, so <span class="eq">string tension × string arm = cable tension × cable arm</span>.</p>
+          <p>Early in the draw the cable arm is long compared with the string arm, so most of the limb load comes straight through to your hand and the weight climbs fast. Near full draw the cable track swings in close to the axle while the string arm grows. The limbs are bent the most, but the lever now multiplies your effort 20 to 50 times. That is let-off.</p>
+        </li>
+        <li>
+          <h3>Energy is the area under the curve</h3>
+          <p>Stored energy is force × distance, added up across the draw. A compound jumps to peak weight early and stays there, so the curve is nearly a rectangle. A recurve only reaches the same peak at full draw, a triangle, and stores far less. The compound also lets you hold a fraction of that weight while you aim.</p>
+        </li>
+        <li>
+          <h3>Handing it to the arrow</h3>
+          <p>Let go and the limbs unbend, haul the cables back, spin the cams in reverse and drive the string forward. The force on the nock replays the curve backwards: a gentle start from the valley, a surge to full peak weight as the cams roll back over, then a fade to zero at brace height, where the arrow separates. The whole push lasts less than 30 milliseconds and can peak above a thousand g.</p>
+          <p>Not all of it leaves with the arrow. The limbs, cams and string have to be accelerated too, so they keep some of the energy, and a little turns into heat inside the limbs. A heavier arrow takes a bigger share: more efficient, but slower. What stays behind rattles the bow as vibration and noise, which is what dampers soak up, and why a dry fire with no arrow to take the energy can wreck a bow.</p>
+        </li>
+      </ol>
+      <p class="note">Model: a generic dual-cam bow, 33" axle to axle, 6.5" brace height. The draw-force curve is set by the sliders; cam lever arms, string tension and limb loads are solved from it so that the energy balances exactly. The release treats the limbs, cams and string as one lumped mass of 50 gr plus 4% internal loss. Numbers are realistic estimates, not a specific bow.</p>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const smooth01=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
+const LBF=4.448222, IN=0.0254, GR=6.479891e-5, FTLB=1.355818, G0=9.80665;
+const reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- Physics model ---------------- */
+const GEOM={ATA:33, brace:6.5, PHI:4.2};
+const CURVE={t1:0.34, ex:1.8, t2:0.66, t3:0.92, pre:1.3, D:2.4};
+const VIRTUAL_GR=50, HYST=0.04;
+const settings={weight:70, letoff:80, drawLength:29, arrow:400, slowmo:250, forces:true, glow:true, parts:false, recurve:true};
+
+function curveShape(t,lo){
+  const {t1,ex,t2,t3}=CURVE;
+  if(t<=0) return 0;
+  if(t<t1) return 1-Math.pow(1-t/t1,ex);
+  if(t<t2) return 1;
+  if(t<t3) return 1-lo*smooth01((t-t2)/(t3-t2));
+  return 1-lo;
+}
+function recurveF(m,x){const t=clamp(x/m.P,0,1);return m.W*(0.82*t+0.18*t*t);}
+
+function buildModel(s){
+  const h=GEOM.ATA/2, P=s.drawLength-1.75-GEOM.brace, lo=s.letoff/100;
+  const smax=Math.hypot(h,P)-h, PHI=GEOM.PHI, N=600;
+  const rsS=u=>0.5+0.5*u;
+  let I=0; for(let i=0;i<N;i++) I+=rsS((i+0.5)/N)*PHI/N;
+  const A=smax/I;
+  const pts=[]; let sAcc=0;
+  for(let i=0;i<=N;i++){
+    const u=i/N; if(i>0) sAcc+=A*rsS((i-0.5)/N)*PHI/N;
+    const L=h+sAcc, x=Math.sqrt(Math.max(0,L*L-h*h));
+    pts.push({u,phi:u*PHI,rs:A*rsS(u),x,sina:x/L,F:0});
+  }
+  pts[N].x=P;
+  for(const q of pts) q.F=s.weight*curveShape(q.x/P,lo);
+  let E=0; pts[0].E=0;
+  for(let i=1;i<=N;i++){E+=0.5*(pts[i].F+pts[i-1].F)*(pts[i].x-pts[i-1].x); pts[i].E=E;}
+  const D=CURVE.D, dp=CURVE.pre*D, K=E/((dp+D)*(dp+D)-dp*dp);
+  for(let i=0;i<=N;i++){
+    const q=pts[i];
+    q.d=Math.sqrt(dp*dp+q.E/K)-dp;
+    q.Fl=K*(dp+q.d);
+    q.lev=i?q.F/(2*q.Fl*q.sina):0;
+    q.alpha=Math.asin(clamp(q.sina,0,1));
+  }
+  pts[0].lev=pts[1].lev;
+  for(const q of pts){q.rc=q.lev*q.rs;q.Ts=q.Fl*q.lev;}
+  return {pts,P,h,A,PHI,N,W:s.weight,lo,Emax:E,Er:s.weight*P*(0.41+0.06)};
+}
+const KEYS=['u','phi','rs','x','sina','F','E','d','Fl','lev','alpha','rc','Ts'];
+function sample(m,x){
+  const p=m.pts; x=clamp(x,0,m.P);
+  let lo=0,hi=p.length-1;
+  while(hi-lo>1){const mid=(lo+hi)>>1; if(p[mid].x<=x) lo=mid; else hi=mid;}
+  const a=p[lo],b=p[hi],span=b.x-a.x, t=span>1e-9?(x-a.x)/span:0, o={};
+  for(const k of KEYS) o[k]=a[k]+(b[k]-a[k])*t;
+  o.x=x; return o;
+}
+function simulateRelease(m,x0){
+  const ma=settings.arrow*GR, mv=VIRTUAL_GR*GR, M=ma+mv;
+  let x=x0*IN, v=0, t=0, i=0, Fpk=0; const dt=2e-6, S=[];
+  const push=()=>{S.push({t,x:Math.max(0,x/IN),v,F:sample(m,Math.max(0,x/IN)).F*(1-HYST)});};
+  push();
+  while(x>0&&t<0.3){
+    const F=sample(m,x/IN).F*(1-HYST); if(F>Fpk)Fpk=F;
+    v+=F*LBF/M*dt; x-=v*dt; t+=dt;
+    if(++i%20===0) push();
+  }
+  x=0; push();
+  const E0=sample(m,x0).E*LBF*IN;
+  const KEa=0.5*ma*v*v, KEb=0.5*mv*v*v, heat=Math.max(0,E0-KEa-KEb);
+  return {S,tL:t,v,E0,KEa,KEb,heat,aPk:Fpk*LBF/M,ma,x0};
+}
+function relAt(r,t){
+  const S=r.S; if(t<=0) return S[0]; if(t>=r.tL) return S[S.length-1];
+  let lo=0,hi=S.length-1;
+  while(hi-lo>1){const mid=(lo+hi)>>1; if(S[mid].t<=t) lo=mid; else hi=mid;}
+  const a=S[lo],b=S[hi],k=(t-a.t)/Math.max(1e-12,b.t-a.t);
+  return {t,x:lerp(a.x,b.x,k),v:lerp(a.v,b.v,k),F:lerp(a.F,b.F,k)};
+}
+
+let model=buildModel(settings);
+
+/* ---------------- Theme ---------------- */
+const C={};
+function readTheme(){
+  const cs=getComputedStyle(document.documentElement);
+  for(const k of ['paper','panel','panel-2','ink','muted','rule','red','gold','gold-ink','blue','scene','grid']) C[k]=cs.getPropertyValue('--'+k).trim();
+}
+readTheme();
+
+/* ---------------- Three.js scene ---------------- */
+const V3=THREE.Vector3;
+const col=h=>new THREE.Color(h).convertSRGBToLinear();
+const vp=$('#viewport'), canvas=$('#three');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(30,1,0.5,1200);
+
+(function makeEnv(){
+  const pm=new THREE.PMREMGenerator(renderer), es=new THREE.Scene();
+  const g=new THREE.SphereGeometry(40,32,16), p=g.attributes.position, cols=[];
+  for(let i=0;i<p.count;i++){
+    const y=p.getY(i)/40;
+    if(y>=0) cols.push(0.5+0.45*y,0.55+0.42*y,0.6+0.38*y); else cols.push(0.2,0.22,0.25);
+  }
+  g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+  es.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide})));
+  const panel=(x,y,z,w,h)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide}));m.position.set(x,y,z);m.lookAt(0,0,0);es.add(m);};
+  panel(14,26,18,22,7); panel(-22,14,-12,12,14); panel(4,6,-32,34,5); panel(-6,30,-6,10,10);
+  scene.environment=pm.fromScene(es,0.04).texture; pm.dispose();
+})();
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x3a4650,0.5));
+const key=new THREE.DirectionalLight(0xffffff,1.05);
+key.position.set(16,42,34); key.castShadow=true; key.shadow.mapSize.set(2048,2048);
+Object.assign(key.shadow.camera,{left:-48,right:48,top:44,bottom:-44,near:1,far:160});
+key.shadow.bias=-0.0004; key.target.position.set(-6,0,0); scene.add(key,key.target);
+const rim=new THREE.DirectionalLight(0xffffff,0.35); rim.position.set(-30,12,-26); scene.add(rim);
+
+const FLOOR_Y=-21;
+const shadowPlane=new THREE.Mesh(new THREE.PlaneGeometry(400,400),new THREE.ShadowMaterial({opacity:0.16}));
+shadowPlane.rotation.x=-Math.PI/2; shadowPlane.position.y=FLOOR_Y; shadowPlane.receiveShadow=true; scene.add(shadowPlane);
+let grid=null;
+function applySceneTheme(){
+  scene.background=new THREE.Color(C.scene);
+  scene.fog=new THREE.Fog(col(C.scene),110,250);
+  if(grid){scene.remove(grid);grid.geometry.dispose();grid.material.dispose();}
+  grid=new THREE.GridHelper(260,65,col(C.grid),col(C.grid));
+  grid.position.y=FLOOR_Y+0.02; grid.material.transparent=true; grid.material.opacity=0.7; scene.add(grid);
+  stringArrows.forEach(a=>a.color(col(C.ink)));
+  pullArrow.color(col(C.red)); limbArrows.forEach(a=>a.color(col(C.blue)));
+}
+
+const M={
+  riser:new THREE.MeshStandardMaterial({color:col('#7C8992'),metalness:0.8,roughness:0.32}),
+  limb:new THREE.MeshStandardMaterial({color:col('#2D3439'),metalness:0.15,roughness:0.42,emissive:col('#FFB000'),emissiveIntensity:0}),
+  cam:new THREE.MeshStandardMaterial({color:col('#4A535A'),metalness:0.85,roughness:0.3}),
+  module:new THREE.MeshStandardMaterial({color:col('#1C6B90'),metalness:0.7,roughness:0.35}),
+  axle:new THREE.MeshStandardMaterial({color:col('#C9D0D4'),metalness:1,roughness:0.2}),
+  string:new THREE.MeshStandardMaterial({color:col('#E9DFC6'),roughness:0.75}),
+  cable:new THREE.MeshStandardMaterial({color:col('#B9CCD6'),roughness:0.7}),
+  grip:new THREE.MeshStandardMaterial({color:col('#3A4045'),roughness:0.9}),
+  shaft:new THREE.MeshStandardMaterial({color:col('#24282B'),metalness:0.25,roughness:0.38,emissive:col('#FFB000'),emissiveIntensity:0}),
+  vane:new THREE.MeshStandardMaterial({color:col('#EDECE6'),roughness:0.6,side:THREE.DoubleSide}),
+  point:new THREE.MeshStandardMaterial({color:col('#B9C1C6'),metalness:1,roughness:0.25}),
+  rubber:new THREE.MeshStandardMaterial({color:col('#1B1F22'),roughness:0.95}),
+  release:new THREE.MeshStandardMaterial({color:col('#596269'),metalness:0.6,roughness:0.4}),
+};
+function addMesh(geo,mat,parent,shadow=true){const m=new THREE.Mesh(geo,mat);m.castShadow=shadow;(parent||scene).add(m);return m;}
+
+/* Riser */
+const riserX=y=>{const k=y/11.2;return 1.75+0.65*k*k;};
+const riserW=y=>{const k=y/11.2;return 1.15+0.45*k*k;};
+function riserShape(y0,y1,holes){
+  const sh=new THREE.Shape(), n=28;
+  for(let i=0;i<=n;i++){const y=lerp(y0,y1,i/n),x=riserX(y)+riserW(y)/2; if(i) sh.lineTo(x,y); else sh.moveTo(x,y);}
+  for(let i=n;i>=0;i--){const y=lerp(y0,y1,i/n); sh.lineTo(riserX(y)-riserW(y)/2,y);}
+  for(const h of holes||[]){const p=new THREE.Path(); p.absellipse(riserX(h[0]),h[0],h[1],h[2],0,Math.PI*2,true); sh.holes.push(p);}
+  return sh;
+}
+const ext=(sh,depth,bev)=>new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelThickness:bev,bevelSize:bev,bevelSegments:2,curveSegments:24});
+{
+  const up=addMesh(ext(riserShape(6.0,11.9,[[8.9,0.3,1.25]]),1.25,0.06),M.riser); up.position.z=-0.35;
+  const lo=addMesh(ext(riserShape(-11.9,-0.9,[[-8.6,0.3,1.3]]),1.25,0.06),M.riser); lo.position.z=-0.35;
+  const win=addMesh(ext(riserShape(-1.5,6.5),0.48,0.05),M.riser); win.position.z=0.62;
+  const gs=new THREE.Shape();
+  gs.moveTo(1.3,-0.95);
+  gs.splineThru([new THREE.Vector2(0.35,-1.05),new THREE.Vector2(-0.38,-1.85),new THREE.Vector2(-0.5,-3.2),new THREE.Vector2(-0.25,-4.6),new THREE.Vector2(0.55,-5.35),new THREE.Vector2(1.3,-5.3)]);
+  gs.lineTo(1.3,-0.95);
+  const grip=addMesh(ext(gs,1.0,0.14),M.grip); grip.position.z=-0.22;
+  const rest=addMesh(new THREE.BoxGeometry(0.9,0.1,0.75),M.rubber); rest.position.set(1.15,-0.2,0.3);
+  const rod=addMesh(new THREE.CylinderGeometry(0.11,0.11,5.4,12),M.rubber); rod.rotation.z=Math.PI/2; rod.position.set(-1.6,-2.3,0.85);
+  const slide=addMesh(new THREE.BoxGeometry(0.5,0.5,0.75),M.release); slide.position.set(-4.3,-2.3,1.15);
+  const stab=addMesh(new THREE.CylinderGeometry(0.32,0.32,9.6,18),M.rubber); stab.rotation.z=Math.PI/2; stab.position.set(7.2,-3.2,0.28);
+  const wt=addMesh(new THREE.CylinderGeometry(0.58,0.58,1.2,22),M.release); wt.rotation.z=Math.PI/2; wt.position.set(12.4,-3.2,0.28);
+  const damp=addMesh(new THREE.CylinderGeometry(0.46,0.46,0.6,22),M.grip); damp.rotation.z=Math.PI/2; damp.position.set(4.2,-3.2,0.28);
+}
+
+/* Limb + cam assemblies (bottom is a mirror image of the top) */
+const POCKET=new V3(2.35,11.2,0);
+let limbGeo=null, trackGeo=null, moduleGeo=null;
+function makeAssembly(mirror){
+  const g=new THREE.Group(); if(mirror) g.scale.y=-1; scene.add(g);
+  const frame=new THREE.Group(); frame.position.copy(POCKET); g.add(frame);
+  const blades=[-0.62,0.62].map(z=>{const m=addMesh(new THREE.BufferGeometry(),M.limb,frame); m.position.z=z; return m;});
+  const pocket=addMesh(new THREE.BoxGeometry(2.6,1.15,1.95),M.riser,frame); pocket.position.set(0.5,0,0);
+  const camG=new THREE.Group(); g.add(camG);
+  const track=addMesh(new THREE.BufferGeometry(),M.cam,camG);
+  const mod=addMesh(new THREE.BufferGeometry(),M.module,camG);
+  const axle=addMesh(new THREE.CylinderGeometry(0.17,0.17,1.95,16),M.axle,g); axle.rotation.x=Math.PI/2;
+  return {g,frame,blades,camG,track,mod,axle};
+}
+const asm=[makeAssembly(false),makeAssembly(true)];
+
+const camState={kv:1,sOut:[],cOut:[],psiA:0,psiB:0.35,axle0:new V3(),L:10,theta:0,dir:new V3(),nrm:new V3()};
+function Rs(psi){
+  while(psi>Math.PI) psi-=2*Math.PI; while(psi<=-Math.PI) psi+=2*Math.PI;
+  const o=camState.sOut;
+  for(let i=0;i<o.length-1;i++){ if(psi<=o[i][0]&&psi>=o[i+1][0]){const t=(psi-o[i][0])/((o[i+1][0]-o[i][0])||1); return lerp(o[i][1],o[i+1][1],t);} }
+  return o[0][1];
+}
+function Rc(psi){
+  while(psi>0) psi-=2*Math.PI; while(psi<=-2*Math.PI) psi+=2*Math.PI;
+  const o=camState.cOut;
+  for(let i=0;i<o.length-1;i++){ if(psi<=o[i][0]&&psi>=o[i+1][0]){const t=(psi-o[i][0])/((o[i+1][0]-o[i][0])||1); return lerp(o[i][1],o[i+1][1],t);} }
+  return o[0][1];
+}
+function buildLimbGeometry(L){
+  const Lb=L+0.95, geo=new THREE.BoxGeometry(Lb,0.36,0.5,30,1,1);
+  geo.translate(Lb/2-0.55,0,0);
+  geo.userData.base=Float32Array.from(geo.attributes.position.array); geo.userData.L=L;
+  return geo;
+}
+function deformLimb(geo,d){
+  const p=geo.attributes.position.array,b=geo.userData.base,L=geo.userData.L;
+  for(let i=0;i<p.length;i+=3){
+    const x=b[i],t=x/L; let f;
+    if(t<=0) f=0; else if(t<=1) f=(3*t*t-t*t*t)/2; else f=1+1.5*(t-1);
+    p[i]=x; p[i+1]=b[i+1]*(1-0.32*clamp(t,0,1))+d*f; p[i+2]=b[i+2];
+  }
+  geo.attributes.position.needsUpdate=true; geo.computeVertexNormals();
+}
+function polyShape(list){
+  const sh=new THREE.Shape();
+  list.forEach((q,i)=>{const x=q[1]*Math.cos(q[0]),y=q[1]*Math.sin(q[0]); if(i) sh.lineTo(x,y); else sh.moveTo(x,y);});
+  sh.closePath(); return sh;
+}
+function rebuildBow(){
+  const m=model,p=m.pts,N=m.N;
+  const kv=2.1/p[N].rs; camState.kv=kv;
+  // string track: tangent sits at world angle (pi - alpha), so local angle = pi - alpha - phi
+  const s=[]; for(let i=0;i<=N;i+=6){const q=p[i]; s.push([Math.PI-q.alpha-q.phi,kv*q.rs]);}
+  const psiEnd=s[s.length-1][0], rEnd=s[s.length-1][1], r0=s[0][1], gap=psiEnd+Math.PI;
+  for(let j=1;j<24;j++){const f=j/24; s.push([psiEnd-gap*f,lerp(rEnd,r0,smooth01(f))]);}
+  camState.sOut=s.concat([[-Math.PI,r0]]);
+  camState.psiA=psiEnd-0.35;
+  // cable module: tangent at world angle 0, so local angle = -phi
+  const MINR=0.3, c=[];
+  for(let i=0;i<=N;i+=6){const q=p[i]; c.push([-q.phi,Math.max(MINR,kv*q.rc)]);}
+  const cEnd=c[c.length-1][1], c0=c[0][1], gapC=2*Math.PI-m.PHI;
+  for(let j=1;j<24;j++){const f=j/24; c.push([-m.PHI-gapC*f,lerp(cEnd,c0,smooth01(f))]);}
+  camState.cOut=c.concat([[-2*Math.PI,c0]]);
+
+  const tsh=polyShape(s);
+  for(const u of [0.5,0.72,0.93]){const q=p[Math.round(u*N)], psi=Math.PI-q.alpha-q.phi, R=kv*q.rs, cx=0.56*R*Math.cos(psi), cy=0.56*R*Math.sin(psi), hr=clamp(0.16*R,0.1,0.3); const h=new THREE.Path(); h.absarc(cx,cy,hr,0,Math.PI*2,true); tsh.holes.push(h);}
+  if(trackGeo) trackGeo.dispose(); if(moduleGeo) moduleGeo.dispose(); if(limbGeo) limbGeo.dispose();
+  trackGeo=new THREE.ExtrudeGeometry(tsh,{depth:0.22,bevelEnabled:true,bevelThickness:0.03,bevelSize:0.03,bevelSegments:1,curveSegments:8}); trackGeo.translate(0,0,-0.11);
+  moduleGeo=new THREE.ExtrudeGeometry(polyShape(c),{depth:0.13,bevelEnabled:true,bevelThickness:0.02,bevelSize:0.02,bevelSegments:1,curveSegments:8}); moduleGeo.translate(0,0,0.16);
+  // limbs: from pocket to the axle position at brace
+  const ax0=new V3(-GEOM.brace+kv*p[0].rs,GEOM.ATA/2,0); camState.axle0.copy(ax0);
+  const dv=ax0.clone().sub(POCKET); camState.L=dv.length(); camState.theta=Math.atan2(dv.y,dv.x);
+  camState.dir.set(Math.cos(camState.theta),Math.sin(camState.theta),0);
+  camState.nrm.set(-Math.sin(camState.theta),Math.cos(camState.theta),0);
+  limbGeo=buildLimbGeometry(camState.L);
+  for(const a of asm){
+    a.frame.rotation.z=camState.theta;
+    a.blades.forEach(b=>{b.geometry=limbGeo;});
+    a.track.geometry=trackGeo; a.mod.geometry=moduleGeo;
+  }
+}
+
+/* Tubes for string and cables */
+class PolyTube{
+  constructor(max,r,radial,mat){
+    this.max=max;this.r=r;this.n=radial;
+    this.pos=new Float32Array(max*radial*3); this.nor=new Float32Array(max*radial*3);
+    const idx=[];
+    for(let i=0;i<max-1;i++) for(let j=0;j<radial;j++){const a=i*radial+j,b=i*radial+(j+1)%radial,c=(i+1)*radial+j,d=(i+1)*radial+(j+1)%radial; idx.push(a,b,c,b,d,c);}
+    const g=new THREE.BufferGeometry(); g.setIndex(idx);
+    g.setAttribute('position',new THREE.BufferAttribute(this.pos,3)); g.setAttribute('normal',new THREE.BufferAttribute(this.nor,3));
+    this.geo=g; this.mesh=new THREE.Mesh(g,mat); this.mesh.frustumCulled=false; this.mesh.castShadow=true; scene.add(this.mesh);
+    this.T=new V3();this.N=new V3();this.B=new V3();this.tmp=new V3();this.prevT=new V3(1,0,0);
+  }
+  update(pts){
+    const n=Math.min(pts.length,this.max),{T,N,B,tmp}=this;
+    for(let i=0;i<n;i++){
+      if(i===0) T.subVectors(pts[1],pts[0]); else if(i===n-1) T.subVectors(pts[n-1],pts[n-2]); else T.subVectors(pts[i+1],pts[i-1]);
+      if(T.lengthSq()<1e-12) T.copy(this.prevT); T.normalize(); this.prevT.copy(T);
+      if(i===0){tmp.set(0,0,1); if(Math.abs(T.dot(tmp))>0.9) tmp.set(1,0,0); N.crossVectors(T,tmp).normalize();}
+      else {N.addScaledVector(T,-N.dot(T)); if(N.lengthSq()<1e-10){tmp.set(0,0,1);N.crossVectors(T,tmp);} N.normalize();}
+      B.crossVectors(T,N);
+      for(let j=0;j<this.n;j++){
+        const a=j/this.n*Math.PI*2,c=Math.cos(a),s=Math.sin(a),k=(i*this.n+j)*3;
+        const nx=N.x*c+B.x*s,ny=N.y*c+B.y*s,nz=N.z*c+B.z*s;
+        this.nor[k]=nx;this.nor[k+1]=ny;this.nor[k+2]=nz;
+        this.pos[k]=pts[i].x+nx*this.r;this.pos[k+1]=pts[i].y+ny*this.r;this.pos[k+2]=pts[i].z+nz*this.r;
+      }
+    }
+    this.geo.setDrawRange(0,Math.max(0,n-1)*this.n*6);
+    this.geo.attributes.position.needsUpdate=true; this.geo.attributes.normal.needsUpdate=true;
+  }
+}
+const stringTube=new PolyTube(240,0.075,6,M.string);
+const cableTubes=[new PolyTube(160,0.06,6,M.cable),new PolyTube(160,0.06,6,M.cable)];
+const peep=addMesh(new THREE.TorusGeometry(0.3,0.07,8,20),M.rubber); peep.rotation.y=Math.PI/2;
+const dloop=addMesh(new THREE.TorusGeometry(0.38,0.055,8,20,Math.PI),M.release); dloop.rotation.z=Math.PI/2;
+const releaseAid=new THREE.Group(); scene.add(releaseAid);
+{ const head=addMesh(new THREE.CylinderGeometry(0.32,0.38,1.1,16),M.release,releaseAid); head.rotation.z=Math.PI/2; head.position.x=-1.05;
+  const jaw=addMesh(new THREE.BoxGeometry(0.5,0.18,0.18),M.release,releaseAid); jaw.position.x=-0.42;
+  const strap=addMesh(new THREE.BoxGeometry(1.3,0.5,0.8),M.grip,releaseAid); strap.position.x=-2.1; }
+
+/* Arrow */
+const arrow=new THREE.Group(); scene.add(arrow);
+let arrowLen=29.5;
+const shaftMesh=addMesh(new THREE.CylinderGeometry(0.14,0.14,1,14),M.shaft,arrow); shaftMesh.rotation.z=-Math.PI/2;
+const nockMesh=addMesh(new THREE.CylinderGeometry(0.16,0.15,0.55,12),M.vane,arrow); nockMesh.rotation.z=-Math.PI/2; nockMesh.position.x=0.2;
+const pointMesh=addMesh(new THREE.ConeGeometry(0.17,1.0,14),M.point,arrow); pointMesh.rotation.z=-Math.PI/2;
+{
+  const vs=new THREE.Shape(); vs.moveTo(0,0); vs.lineTo(3.2,0); vs.quadraticCurveTo(3.1,0.42,2.4,0.5); vs.quadraticCurveTo(1.1,0.55,0,0.18); vs.lineTo(0,0);
+  const vg=new THREE.ExtrudeGeometry(vs,{depth:0.025,bevelEnabled:false}); vg.translate(0,0.13,-0.0125);
+  for(const a of [Math.PI/2,Math.PI/2+2*Math.PI/3,Math.PI/2+4*Math.PI/3]){
+    const holder=new THREE.Group(); holder.rotation.x=a-Math.PI/2; holder.position.x=1.0; arrow.add(holder); addMesh(vg,M.vane,holder);
+  }
+}
+function setArrowLength(){
+  arrowLen=settings.drawLength+0.5;
+  shaftMesh.scale.set(1,arrowLen-0.9,1); shaftMesh.position.x=(arrowLen-0.9)/2+0.2;
+  pointMesh.position.x=arrowLen-0.3;
+}
+
+/* Force arrows */
+const UP=new V3(0,1,0);
+class FatArrow{
+  constructor(hex){
+    this.mat=new THREE.MeshBasicMaterial({color:col(hex),depthTest:false,transparent:true,opacity:0.95});
+    this.g=new THREE.Group(); this.g.renderOrder=10;
+    this.shaft=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,10),this.mat); this.shaft.renderOrder=10;
+    this.head=new THREE.Mesh(new THREE.ConeGeometry(1,1,14),this.mat); this.head.renderOrder=10;
+    this.g.add(this.shaft,this.head); scene.add(this.g); this.tip=new V3(); this.d=new V3();
+  }
+  set(origin,dir,len,r=0.09){
+    if(!(len>0.06)){this.g.visible=false;return;}
+    this.g.visible=true; this.d.copy(dir).normalize();
+    const hl=Math.min(len*0.45,0.95),hr=r*3.3,sl=Math.max(len-hl,0.001);
+    this.g.position.copy(origin); this.g.quaternion.setFromUnitVectors(UP,this.d);
+    this.shaft.scale.set(r,sl,r); this.shaft.position.set(0,sl/2,0);
+    this.head.scale.set(hr,hl,hr); this.head.position.set(0,sl+hl/2,0);
+    this.tip.copy(origin).addScaledVector(this.d,len);
+  }
+  hide(){this.g.visible=false;}
+  color(c){this.mat.color.copy(c);}
+}
+const pullArrow=new FatArrow('#D3203A');
+const stringArrows=[new FatArrow('#16232C'),new FatArrow('#16232C')];
+const limbArrows=[new FatArrow('#0A7DB0'),new FatArrow('#0A7DB0')];
+
+/* HTML labels */
+const labelsEl=$('#labels');
+function makeTag(cls,swatch){const d=document.createElement('div');d.className='tag'+(cls?' '+cls:'');if(swatch){const i=document.createElement('i');i.style.background=swatch;d.appendChild(i);}const s=document.createElement('span');d.appendChild(s);labelsEl.appendChild(d);d._s=s;d._txt='';return d;}
+const tagPull=makeTag('','var(--red)'), tagString=makeTag('','var(--ink)'), tagLimb=makeTag('','var(--blue)');
+const PARTS=['Riser','Limb','Cam','Cable track','String','Cables','Cable guard','Arrow rest','Peep sight','Release aid','Stabilizer'];
+const partTags=PARTS.map(n=>{const t=makeTag('part');t._s.textContent=n;return t;});
+const tagGrab=makeTag('part'); tagGrab._s.textContent='Drag back to draw';
+function setTag(t,txt){if(t._txt!==txt){t._s.textContent=txt;t._txt=txt;}}
+const _p=new V3();
+function placeTag(t,v,dx=0,dy=0){
+  _p.copy(v).project(camera);
+  const vis=_p.z<1&&_p.z>-1&&Math.abs(_p.x)<1.2&&Math.abs(_p.y)<1.2;
+  t.style.display=vis?'flex':'none'; if(!vis) return;
+  const w=vp.clientWidth,h=vp.clientHeight;
+  t.style.transform=`translate(${((_p.x+1)/2*w+dx).toFixed(1)}px,${((1-_p.y)/2*h+dy).toFixed(1)}px) translate(-50%,-50%)`;
+}
+
+/* ---------------- Simulation state ---------------- */
+const S={mode:'idle',draw:0,spring:false,grabbing:false,autoT:0,rel:null,simT:0,flightT:0,flightReal:0,renockT:0,lastShot:null,shotRev:0};
+
+function startRelease(){
+  if(S.mode!=='idle'&&S.mode!=='auto') return;
+  if(S.draw<1.5){S.spring=true;return;}
+  S.rel=simulateRelease(model,S.draw);
+  S.mode='release'; S.simT=0; S.spring=false; S.grabbing=false;
+  S.lastShot=S.rel; S.shotRev++; showShot(S.rel);
+  setBusy(true);
+}
+function startAuto(){ if(S.mode!=='idle') return; S.mode='auto'; S.autoT=0; S.autoFrom=S.draw; S.spring=false; setBusy(true); }
+const easeInOut=t=>t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+
+function step(dt){
+  if(S.mode==='idle'){
+    if(S.spring){S.draw+=(0-S.draw)*(1-Math.exp(-dt*7)); if(S.draw<0.01){S.draw=0;S.spring=false;}}
+  } else if(S.mode==='auto'){
+    S.autoT+=dt; const T1=2.4;
+    if(S.autoT<T1) S.draw=lerp(S.autoFrom,model.P,easeInOut(S.autoT/T1)); else S.draw=model.P;
+    if(S.autoT>T1+1.6){S.mode='idle';startRelease();}
+  } else if(S.mode==='release'){
+    S.simT+=dt/settings.slowmo;
+    if(S.simT>=S.rel.tL){S.mode='flight';S.flightT=S.simT-S.rel.tL;S.flightReal=0;S.draw=0;}
+  } else if(S.mode==='flight'){
+    S.flightReal+=dt;
+    const rate=Math.min(1/settings.slowmo*Math.exp(3.2*S.flightReal),1/6);
+    S.flightT+=dt*rate;
+    if(S.flightReal>2.1){S.mode='renock';S.renockT=0;}
+  } else if(S.mode==='renock'){
+    S.renockT+=dt; if(S.renockT>0.45){S.mode='idle';setBusy(false);}
+  }
+}
+
+/* view = everything needed to pose the model this frame */
+function currentView(){
+  const v={mode:S.mode,arrowVisible:true,releaseVisible:true,pushF:0,arrowKE:0};
+  if(S.mode==='release'){
+    const r=relAt(S.rel,S.simT); v.x=r.x; v.q=sample(model,r.x); v.nockX=-GEOM.brace-r.x; v.arrowNock=v.nockX;
+    v.pushF=r.F; v.arrowKE=0.5*S.rel.ma*r.v*r.v; v.speed=r.v; v.t=r.t; v.releaseVisible=true;
+  } else if(S.mode==='flight'){
+    const t=S.flightT, A=0.75, w=2*Math.PI*70, tau=0.014;
+    const xs=-A*Math.sin(w*t)*Math.exp(-t/tau);
+    v.x=Math.max(0,xs); v.q=sample(model,v.x); v.nockX=-GEOM.brace-xs;
+    v.arrowNock=-GEOM.brace+S.rel.v/IN*t; v.arrowVisible=v.arrowNock<220; v.releaseVisible=false;
+    v.arrowKE=S.rel.KEa; v.speed=S.rel.v; v.ringE=Math.exp(-t/tau);
+  } else {
+    v.x=S.mode==='renock'?0:S.draw; v.q=sample(model,v.x); v.nockX=-GEOM.brace-v.x; v.arrowNock=v.nockX;
+    v.arrowVisible=S.mode!=='renock'||S.renockT>0.2; v.releaseVisible=S.mode!=='renock';
+  }
+  return v;
+}
+
+const tmpA=new V3(),tmpB=new V3(),axleT=new V3(),axleB=new V3(),nockP=new V3();
+const strPts=[],cabPts=[[],[]],cabTan=[0,0];
+function pool(arr,i){if(!arr[i]) arr[i]=new V3(); return arr[i];}
+function camPoint(out,psi,R,z,phi,ax,mirror){
+  const a=psi+phi; out.set(ax.x+R*Math.cos(a),ax.y+R*Math.sin(a),z); if(mirror) out.y=-out.y; return out;
+}
+const GUARD=[new V3(-4.3,-2.3,1.02),new V3(-4.3,-2.3,1.3)];
+const partAnchors={};
+
+function poseBow(v){
+  const q=v.q, phi=q.phi, dvis=0.5*q.d;
+  deformLimb(limbGeo,dvis);
+  axleT.copy(POCKET).addScaledVector(camState.dir,camState.L).addScaledVector(camState.nrm,dvis);
+  axleB.set(axleT.x,-axleT.y,0);
+  for(const a of asm){a.camG.position.set(axleT.x,axleT.y,0);a.camG.rotation.z=phi;a.axle.position.set(axleT.x,axleT.y,0);}
+  nockP.set(v.nockX,0,0);
+
+  // string: top anchor -> top tangent -> nock -> bottom tangent -> bottom anchor
+  const psiT=Math.PI-q.alpha-phi, psiA=camState.psiA; let n=0; const top=[];
+  for(let psi=psiA;psi<psiT;psi+=0.08) top.push(psi); top.push(psiT);
+  for(const psi of top) camPoint(pool(strPts,n++),psi,Rs(psi)+0.05,0,phi,axleT,false);
+  pool(strPts,n++).copy(nockP);
+  for(let i=top.length-1;i>=0;i--) camPoint(pool(strPts,n++),top[i],Rs(top[i])+0.05,0,phi,axleT,true);
+  stringTube.update(strPts.slice(0,n));
+
+  // cables: wound on module from psiB down to tangent (-phi), then to guard, then to the opposite limb tip
+  const psiC=-phi;
+  for(let k=0;k<2;k++){
+    const mirror=k===1, arr=cabPts[k]; let m=0;
+    for(let psi=camState.psiB;psi>psiC;psi-=0.08) camPoint(pool(arr,m++),psi,Rc(psi)+0.04,0.235,phi,axleT,mirror);
+    camPoint(pool(arr,m++),psiC,Rc(psiC)+0.04,0.235,phi,axleT,mirror);
+    cabTan[k]=m-1;
+    pool(arr,m++).copy(GUARD[k]);
+    const end=mirror?axleT:axleB; pool(arr,m++).set(end.x+0.25,end.y,0.5);
+    cableTubes[k].update(arr.slice(0,m));
+  }
+  // peep + d-loop
+  tmpA.copy(strPts[top.length-1]).sub(nockP).normalize();
+  peep.position.copy(nockP).addScaledVector(tmpA,5.2);
+  peep.rotation.set(0,Math.PI/2,0); peep.rotateOnWorldAxis(new V3(0,0,1),Math.atan2(tmpA.y,tmpA.x)-Math.PI/2);
+  dloop.position.copy(nockP);
+  releaseAid.visible=v.releaseVisible; releaseAid.position.copy(nockP);
+  if(v.mode==='release') releaseAid.position.x=-GEOM.brace-S.rel.x0;
+
+  // arrow
+  arrow.visible=v.arrowVisible; arrow.position.set(v.arrowNock,0,0);
+
+  // energy glow
+  const eFrac=settings.glow?clamp(q.E/model.Emax,0,1):0;
+  M.limb.emissiveIntensity=0.55*eFrac;
+  const aFrac=settings.glow&&S.rel?clamp(v.arrowKE/S.rel.KEa,0,1):0;
+  M.shaft.emissiveIntensity=(v.mode==='release'||v.mode==='flight')?0.7*aFrac:0;
+
+  if(!settings.parts) return {topCount:top.length};
+  partAnchors['Riser']=tmpB.set(riserX(9.5)+0.9,9.5,0.4).clone();
+  partAnchors['Limb']=POCKET.clone().addScaledVector(camState.dir,camState.L*0.55).addScaledVector(camState.nrm,dvis*0.4-1.3);
+  partAnchors['Cam']=axleT.clone().add(new V3(-0.4,2.6,0));
+  partAnchors['Cable track']=axleB.clone().add(new V3(1.6,-0.6,0.3));
+  partAnchors['String']=strPts[top.length-1].clone().lerp(nockP,0.32).add(new V3(-1.2,0,0));
+  partAnchors['Cables']=cabPts[0][Math.max(0,cabPts[0].length-3)].clone().lerp(GUARD[0],0.5).add(new V3(1.4,0,0));
+  partAnchors['Cable guard']=GUARD[0].clone().add(new V3(0,-1,0));
+  partAnchors['Arrow rest']=new V3(1.4,-1.0,0.3);
+  partAnchors['Peep sight']=peep.position.clone().add(new V3(-1.6,0.4,0));
+  partAnchors['Release aid']=releaseAid.position.clone().add(new V3(-1.8,-1.1,0));
+  partAnchors['Stabilizer']=new V3(8,-4.4,0.3);
+  return {topCount:top.length};
+}
+
+function poseForces(v,info){
+  const show=settings.forces; const q=v.q;
+  if(!show){pullArrow.hide();stringArrows.forEach(a=>a.hide());limbArrows.forEach(a=>a.hide());return;}
+  if(v.mode==='release'){
+    pullArrow.set(nockP.clone().add(new V3(0.3,0,0)),new V3(1,0,0),v.pushF*0.085,0.11);
+  } else if(v.mode==='flight'||v.mode==='renock'){ pullArrow.hide(); }
+  else pullArrow.set(nockP.clone().add(new V3(-1.6,0,0)),new V3(-1,0,0),q.F*0.085,0.11);
+  const tTop=strPts[info.topCount-1], tBot=strPts[info.topCount+1];
+  const sl=(v.mode==='flight'||v.mode==='renock')?0:q.Ts*0.03;
+  stringArrows[0].set(nockP,tmpA.copy(tTop).sub(nockP),sl,0.07);
+  stringArrows[1].set(nockP,tmpB.copy(tBot).sub(nockP),sl,0.07);
+  for(let k=0;k<2;k++){
+    const tan=cabPts[k][cabTan[k]], ax=k?axleB:axleT;
+    limbArrows[k].set(ax,tmpA.copy(GUARD[k]).sub(tan),q.Fl*0.016,0.09);
+  }
+}
+
+/* ---------------- Camera / orbit ---------------- */
+const orbit={theta:-0.36,phi:1.40,r:80,target:new V3(-8.5,-0.5,0),follow:null};
+let tween=null;
+const VIEWS={
+  three:{theta:-0.36,phi:1.40,target:[-8.5,-0.5,0],fit:0.86},
+  side:{theta:0,phi:Math.PI/2-0.02,target:[-7,-0.5,0],fit:1},
+  cam:{theta:-0.22,phi:1.42,target:'cam',r:26},
+  archer:{theta:-Math.PI/2-0.55,phi:1.36,target:[-6,0,0],r:92},
+};
+function fitR(f){
+  const t=Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+  const narrow=camera.aspect<1, span=narrow?50:68, vspan=narrow?40:48;
+  return Math.max((span/2)/(t*Math.max(0.3,camera.aspect)),(vspan/2)/t)*f;
+}
+function goView(name,instant){
+  const p=VIEWS[name]; if(!p) return;
+  document.querySelectorAll('.views button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===name)));
+  orbit.follow=p.target==='cam'?'cam':null;
+  const goal={theta:p.theta,phi:p.phi,r:p.r||fitR(p.fit),target:p.target==='cam'?axleT.clone():new V3(...p.target)};
+  if(p.target!=='cam'&&camera.aspect<1) goal.target.y+=3.5;
+  if(instant||reduceMotion){Object.assign(orbit,{theta:goal.theta,phi:goal.phi,r:goal.r});orbit.target.copy(goal.target);tween=null;return;}
+  tween={t:0,from:{theta:orbit.theta,phi:orbit.phi,r:orbit.r,target:orbit.target.clone()},goal,name};
+}
+let currentViewName='three';
+function updateCamera(dt){
+  if(tween){
+    tween.t=Math.min(1,tween.t+dt/0.8); const k=easeInOut(tween.t),f=tween.from,g=tween.goal;
+    orbit.theta=lerp(f.theta,g.theta,k); orbit.phi=lerp(f.phi,g.phi,k); orbit.r=lerp(f.r,g.r,k);
+    const tgt=orbit.follow==='cam'?axleT:g.target; orbit.target.lerpVectors(f.target,tgt,k);
+    if(tween.t>=1) tween=null;
+  } else if(orbit.follow==='cam'){ orbit.target.lerp(axleT,1-Math.exp(-dt*10)); }
+  const sp=Math.sin(orbit.phi);
+  camera.position.set(orbit.target.x+orbit.r*sp*Math.sin(orbit.theta),orbit.target.y+orbit.r*Math.cos(orbit.phi),orbit.target.z+orbit.r*sp*Math.cos(orbit.theta));
+  camera.lookAt(orbit.target); camera.updateMatrixWorld();
+}
+
+function resize(){
+  const w=vp.clientWidth,h=vp.clientHeight; if(!w||!h) return;
+  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+  if(!tween&&VIEWS[currentViewName]&&!VIEWS[currentViewName].r&&!userZoomed) orbit.r=fitR(VIEWS[currentViewName].fit);
+  dirty.charts=true;
+}
+let userZoomed=false;
+
+/* ---------------- Pointer interaction ---------------- */
+const pointers=new Map(); let drag=null, pinch=null;
+function screenOf(v){const p=v.clone().project(camera);return {x:(p.x+1)/2*vp.clientWidth,y:(1-p.y)/2*vp.clientHeight};}
+function localXY(e){const r=vp.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+function nearNock(x,y){if(S.mode!=='idle') return false; const n=screenOf(new V3(-GEOM.brace-S.draw,0,0)); return Math.hypot(n.x-x,n.y-y)<40;}
+vp.addEventListener('pointerdown',e=>{
+  if(e.target.closest('button,input,select,label,a')) return;
+  vp.setPointerCapture(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){
+    if(drag&&drag.type==='grab'){S.grabbing=false;S.spring=true;}
+    drag=null; const [a,b]=[...pointers.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),r:orbit.r}; return;
+  }
+  const p=localXY(e);
+  if(nearNock(p.x,p.y)){
+    const n=screenOf(new V3(-GEOM.brace-S.draw,0,0)), m=screenOf(new V3(-GEOM.brace-S.draw-10,0,0));
+    drag={type:'grab',sx:p.x,sy:p.y,d0:S.draw,vx:m.x-n.x,vy:m.y-n.y}; S.grabbing=true; S.spring=false; vp.style.cursor='grabbing';
+  } else { drag={type:'orbit',x:e.clientX,y:e.clientY}; tween=null; vp.style.cursor='grabbing'; }
+});
+vp.addEventListener('pointermove',e=>{
+  if(pointers.has(e.pointerId)) pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&pointers.size===2){const [a,b]=[...pointers.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);orbit.r=clamp(pinch.r*pinch.d/Math.max(d,1),8,260);userZoomed=true;return;}
+  if(!drag){const p=localXY(e); vp.style.cursor=nearNock(p.x,p.y)?'grab':'default'; return;}
+  if(drag.type==='orbit'){
+    const dx=e.clientX-drag.x,dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
+    orbit.theta-=dx*0.0065; orbit.phi=clamp(orbit.phi-dy*0.0065,0.12,Math.PI-0.12);
+  } else if(drag.type==='grab'){
+    const p=localXY(e), dx=p.x-drag.sx, dy=p.y-drag.sy, L2=drag.vx*drag.vx+drag.vy*drag.vy;
+    const add=L2>400?10*(dx*drag.vx+dy*drag.vy)/L2:dy*0.08;
+    S.draw=clamp(drag.d0+add,0,model.P);
+  }
+});
+function endPointer(e){
+  pointers.delete(e.pointerId);
+  if(pointers.size<2) pinch=null;
+  if(drag&&drag.type==='grab'){S.grabbing=false; if(S.draw>1.5) startRelease(); else S.spring=true;}
+  drag=null; vp.style.cursor='default';
+}
+vp.addEventListener('pointerup',endPointer); vp.addEventListener('pointercancel',endPointer);
+vp.addEventListener('wheel',e=>{e.preventDefault();orbit.r=clamp(orbit.r*Math.exp(e.deltaY*0.0012),8,260);userZoomed=true;tween=null;},{passive:false});
+document.querySelectorAll('.views button').forEach(b=>b.addEventListener('click',()=>{currentViewName=b.dataset.view;userZoomed=false;goView(b.dataset.view);}));
+
+/* ---------------- Controls ---------------- */
+const drawEl=$('#draw'), drawOut=$('#drawOut'), btnRel=$('#btnRelease'), btnAuto=$('#btnAuto');
+drawEl.addEventListener('input',()=>{ if(S.mode!=='idle') return; S.spring=false; S.draw=drawEl.value/1000*model.P; });
+btnRel.addEventListener('click',()=>startRelease());
+btnAuto.addEventListener('click',()=>startAuto());
+document.addEventListener('keydown',e=>{
+  if(e.target===drawEl&&e.code==='Space'){e.preventDefault(); startRelease(); return;}
+  if(e.target.closest&&e.target.closest('input,select,button,textarea')) return;
+  if(e.code==='Space'){e.preventDefault(); if(S.mode==='idle'&&S.draw>1.5) startRelease(); else if(S.mode==='idle') startAuto();}
+  if(e.code==='Escape'&&S.mode==='idle'){S.spring=true;}
+});
+function setBusy(b){ $('#settings').disabled=b; btnAuto.disabled=b; drawEl.disabled=b; }
+
+const fmt=(v,d=0)=>Number.isFinite(v)?v.toFixed(d):'0';
+function bindSetting(id,key,out,f){
+  const el=$('#'+id),o=$('#'+out);
+  const apply=()=>{settings[key]=parseFloat(el.value); o.textContent=f(settings[key]);};
+  el.addEventListener('input',()=>{ const frac=S.draw/model.P; apply(); model=buildModel(settings); rebuildBow(); setArrowLength(); S.draw=clamp(frac*model.P,0,model.P); dirty.charts=true; dirty.settingsRev++; });
+  apply();
+}
+bindSetting('sWeight','weight','oWeight',v=>`${v} lb`);
+bindSetting('sLetoff','letoff','oLetoff',v=>`${v}%`);
+bindSetting('sDraw','drawLength','oDraw',v=>`${v.toFixed(1)}"`);
+bindSetting('sArrow','arrow','oArrow',v=>`${v} gr`);
+$('#sSlow').addEventListener('change',e=>{settings.slowmo=parseFloat(e.target.value);});
+const tog=(id,k,cb)=>{const el=$('#'+id); el.addEventListener('change',()=>{settings[k]=el.checked; if(cb) cb(); dirty.charts=true;}); settings[k]=el.checked;};
+tog('tForces','forces'); tog('tGlow','glow'); tog('tParts','parts'); tog('tRecurve','recurve',()=>{$('#legRecurve').style.display=settings.recurve?'':'none';});
+
+/* Phases + callout */
+const PHASES=['At brace','Building','Peak weight','Rolling over','Let-off valley','Power stroke','Arrow away'];
+const phasesEl=$('#phases'); PHASES.forEach(n=>{const li=document.createElement('li');li.textContent=n;phasesEl.appendChild(li);});
+function phaseIndex(v){
+  if(v.mode==='release') return 5; if(v.mode==='flight') return 6;
+  const t=v.x/model.P; if(v.x<0.3) return 0; if(t<CURVE.t1) return 1; if(t<CURVE.t2) return 2; if(t<CURVE.t3) return 3; return 4;
+}
+function calloutText(i,v){
+  const q=v.q, lev=1/Math.max(q.lev,1e-6), r=S.rel;
+  switch(i){
+    case 0: return ['At brace',`The limbs are already bent and the string carries about ${fmt(q.Ts)} lb, but it pulls straight up and down, so nothing pushes the arrow. Drag the nock back or press Draw and shoot.`];
+    case 1: return ['Building',`The cams start to turn. Their leverage is only ${lev.toFixed(1)}×, so most of the ${fmt(q.Fl)} lb on each limb reaches your hand and the weight climbs fast.`];
+    case 2: return ['Peak weight',`You’re holding the full ${fmt(model.W)} lb. This flat top is where most of the energy goes in: each inch here stores about ${(model.W/12).toFixed(1)} ft·lb.`];
+    case 3: return ['Rolling over',`The cable track swings in toward the axle while the string track grows. The limbs keep bending (${fmt(q.Fl)} lb each), but leverage rises to ${lev.toFixed(lev<10?1:0)}×, so the weight falls away.`];
+    case 4: return [v.x>=model.P-0.05?'On the wall':'Let-off valley',`The limbs are bent the most (${fmt(q.Fl)} lb each) yet you hold only ${fmt(q.F)} lb, ${fmt(settings.letoff)}% less than peak, through a ${fmt(lev)}× lever.${v.x>=model.P-0.05?' The draw stop is hit: pulling further gets you nowhere.':''}`];
+    case 5: return ['Power stroke',`The limbs unbend and spin the cams back. The push on the nock starts low at the valley, surges to ${fmt(model.W)} lb as the cams roll over, then fades to zero at brace.`];
+    case 6: return ['Arrow away',r?`The arrow left at ${fmt(r.v*3.28084)} fps carrying ${fmt(100*r.KEa/r.E0)}% of the stored energy. The rest is shaking the limbs, cams and string as vibration and noise.`:''];
+  }
+  return ['',''];
+}
+let lastPhase=-1;
+function updatePhase(v){
+  const i=phaseIndex(v), [h,p]=calloutText(i,v), co=$('#callout');
+  if(i!==lastPhase){ [...phasesEl.children].forEach((li,k)=>{li.className=k===i?'now':(k<i?'done':'');}); lastPhase=i; $('#live').textContent=PHASES[i]; }
+  if(co._h!==h){co.querySelector('h2').textContent=h;co._h=h;}
+  if(co._p!==p){co.querySelector('p').textContent=p;co._p=p;}
+}
+
+/* Readouts */
+const R={pull:$('#rPull'),pullL:$('#pullLabel'),str:$('#rString'),limb:$('#rLimb'),en:$('#rEnergy'),lev:$('#rLev'),rot:$('#rRot')};
+function setText(el,t){if(el._t!==t){el.textContent=t;el._t=t;}}
+function updateReadouts(v){
+  const q=v.q, flying=v.mode==='flight'||v.mode==='renock';
+  if(v.mode==='release'){setText(R.pullL,'Push on arrow');setText(R.pull,fmt(v.pushF));}
+  else {setText(R.pullL,'Your pull');setText(R.pull,fmt(flying?0:q.F));}
+  setText(R.str,fmt(q.Ts)); setText(R.limb,fmt(q.Fl));
+  setText(R.en,(q.E/12).toFixed(1));
+  const lev=1/Math.max(q.lev,1e-6); setText(R.lev,lev.toFixed(lev<10?1:0));
+  setText(R.rot,fmt(q.phi*180/Math.PI));
+  setText(drawOut,`${v.x.toFixed(1)}"`);
+  if(!S.grabbing&&!(document.activeElement===drawEl&&S.mode==='idle')) drawEl.value=String(Math.round(clamp(v.x/model.P,0,1)*1000));
+  btnRel.disabled=!(S.mode==='idle'&&S.draw>1.5);
+}
+
+/* Shot results */
+function showShot(r){
+  $('#shotEmpty').hidden=true; $('#shotData').hidden=false;
+  const fps=r.v*3.28084;
+  $('#sFps').textContent=fmt(fps); $('#sMps').textContent=fmt(r.v,1);
+  $('#sKe').textContent=(r.KEa/FTLB).toFixed(1); $('#sEff').textContent=fmt(100*r.KEa/r.E0);
+  $('#sMs').textContent=(r.tL*1000).toFixed(1); $('#sG').textContent=fmt(r.aPk/G0);
+  const a=100*r.KEa/r.E0,b=100*r.KEb/r.E0,c=Math.max(0,100-a-b);
+  $('#bA').style.width=a+'%'; $('#bB').style.width=b+'%'; $('#bC').style.width=c+'%';
+  $('#pA').textContent=`${a.toFixed(0)}%  (${(r.KEa/FTLB).toFixed(1)} ft·lb)`;
+  $('#pB').textContent=`${b.toFixed(0)}%`; $('#pC').textContent=`${c.toFixed(0)}%`;
+}
+
+/* ---------------- 2D charts ---------------- */
+function prep(cv){
+  const w=cv.clientWidth,h=cv.clientHeight,dpr=Math.min(window.devicePixelRatio||1,2);
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h); return {ctx,w,h};
+}
+const FONT=(wt,sz)=>`${wt} ${sz}px Archivo, system-ui, sans-serif`;
+function alpha(hex,a){
+  const c=new THREE.Color(hex); return `rgba(${Math.round(c.r*255)},${Math.round(c.g*255)},${Math.round(c.b*255)},${a})`;
+}
+function drawForceChart(v){
+  const cv=$('#forceChart'); if(!cv.clientWidth) return; const {ctx,w,h}=prep(cv), m=model;
+  const pl=38,pr=14,pt=16,pb=30, Xmax=m.P*1.06, Ymax=m.W*1.42;
+  const X=x=>pl+x/Xmax*(w-pl-pr), Y=f=>h-pb-f/Ymax*(h-pt-pb);
+  ctx.font=FONT(500,11); ctx.textBaseline='middle';
+  const yStep=m.W>60?20:10;
+  for(let f=0;f<=Ymax;f+=yStep){ctx.strokeStyle=C.rule;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pl,Y(f)+.5);ctx.lineTo(w-pr,Y(f)+.5);ctx.stroke();ctx.fillStyle=C.muted;ctx.textAlign='right';ctx.fillText(String(f),pl-6,Y(f));}
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  for(let x=0;x<=m.P;x+=5){ctx.fillStyle=C.muted;ctx.fillText(x+'"',X(x),h-pb+6);}
+  ctx.textAlign='left'; ctx.fillText('lb',4,4);
+  // stored energy area
+  const xNow=clamp(v.x,0,m.P);
+  if(xNow>0.01&&!(v.mode==='flight'||v.mode==='renock')){
+    ctx.beginPath(); ctx.moveTo(X(0),Y(0));
+    for(const p of m.pts){ if(p.x>xNow) break; ctx.lineTo(X(p.x),Y(p.F)); }
+    const qn=sample(m,xNow); ctx.lineTo(X(xNow),Y(qn.F)); ctx.lineTo(X(xNow),Y(0)); ctx.closePath();
+    ctx.fillStyle=alpha(C.gold,0.38); ctx.fill();
+  }
+  // recurve
+  if(settings.recurve){
+    ctx.setLineDash([5,4]); ctx.strokeStyle=C.muted; ctx.lineWidth=1.6; ctx.beginPath();
+    for(let i=0;i<=60;i++){const x=m.P*i/60; const yv=recurveF(m,x); if(i) ctx.lineTo(X(x),Y(yv)); else ctx.moveTo(X(x),Y(yv));}
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  // wall
+  ctx.strokeStyle=C.ink; ctx.lineWidth=3; ctx.beginPath(); const fe=m.pts[m.N].F; ctx.moveTo(X(m.P),Y(fe)); ctx.lineTo(X(m.P),Y(Ymax*0.97)); ctx.stroke();
+  // compound curve
+  ctx.strokeStyle=C.red; ctx.lineWidth=2.4; ctx.lineJoin='round'; ctx.beginPath();
+  m.pts.forEach((p,i)=>{ if(i%3&&i!==m.N) return; const px=X(p.x),py=Y(p.F); if(i) ctx.lineTo(px,py); else ctx.moveTo(px,py);}); ctx.stroke();
+  // annotations
+  ctx.fillStyle=C.ink; ctx.font=FONT(650,11.5); ctx.textBaseline='bottom'; ctx.textAlign='center';
+  ctx.textBaseline='top'; ctx.fillText(`Peak ${m.W} lb`,X(m.P*(CURVE.t1+CURVE.t2)/2),Y(m.W)+6); ctx.textBaseline='bottom';
+  ctx.textAlign='right'; ctx.fillText(`Holding ${fmt(fe)} lb`,X(m.P)-6,Y(fe)-5);
+  ctx.textAlign='right'; ctx.textBaseline='top'; ctx.fillText('Wall',X(m.P)-6,Y(Ymax*0.97));
+  // energy text
+  ctx.textAlign='left'; ctx.textBaseline='top'; ctx.font=FONT(650,12);
+  const qn=sample(m,xNow), eShow=(v.mode==='flight'||v.mode==='renock')?0:qn.E/12;
+  ctx.fillStyle=C['gold-ink']; ctx.fillText(`Stored ${eShow.toFixed(1)} of ${(m.Emax/12).toFixed(0)} ft·lb`,pl+8,pt+2);
+  if(settings.recurve){ctx.fillStyle=C.muted;ctx.font=FONT(500,11.5);ctx.fillText(`Recurve at the same peak: ${(m.Er/12).toFixed(0)} ft·lb`,pl+8,pt+18);}
+  // marker
+  if(!(v.mode==='flight'||v.mode==='renock')){
+    const fy=v.mode==='release'?v.pushF/(1-HYST):qn.F;
+    ctx.fillStyle=C.red; ctx.strokeStyle=C.panel; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(X(xNow),Y(fy),5.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  }
+}
+
+function drawCam(v){
+  const cv=$('#camChart'); if(!cv.clientWidth) return; const {ctx,w,h}=prep(cv), q=v.q, kv=camState.kv;
+  const halo=(t,x,y)=>{ctx.save();ctx.lineWidth=4;ctx.lineJoin='round';ctx.strokeStyle=C.panel;ctx.strokeText(t,x,y);ctx.restore();ctx.fillText(t,x,y);};
+  const cx=w*0.36, cy=h*0.44, S_=Math.min(w*0.8,h)*0.27/2.1, phi=q.phi;
+  const P=(ang,R)=>[cx+S_*R*Math.cos(ang),cy-S_*R*Math.sin(ang)];
+  const poly=(list,fill,stroke)=>{ctx.beginPath(); list.forEach((o,i)=>{const [x,y]=P(o[0]+phi,o[1]); if(i) ctx.lineTo(x,y); else ctx.moveTo(x,y);}); ctx.closePath(); ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=stroke; ctx.lineWidth=1.5; ctx.stroke();};
+  poly(camState.sOut,C['panel-2'],C.ink);
+  poly(camState.cOut,alpha(C.blue,0.22),C.blue);
+  const lw=t=>clamp(1.2+t/45,1.2,7);
+  // string: leaves the string track at right angles to its radius
+  const thT=Math.PI-q.alpha, [sx,sy]=P(thT,kv*q.rs), sdx=-Math.sin(q.alpha), sdy=Math.cos(q.alpha), sL=h*0.75;
+  ctx.strokeStyle=C.ink; ctx.lineWidth=lw(q.Ts); ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+sdx*sL,sy+sdy*sL); ctx.stroke();
+  // cable: leaves the cable track on the right, straight down
+  const [kx,ky]=P(0,Math.max(kv*q.rc,0.001));
+  ctx.strokeStyle=C.blue; ctx.lineWidth=lw(q.Fl); ctx.beginPath(); ctx.moveTo(kx,ky); ctx.lineTo(kx,h); ctx.stroke();
+  // lever arms
+  ctx.setLineDash([4,3]); ctx.lineWidth=1.6;
+  ctx.strokeStyle=C.ink; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(sx,sy); ctx.stroke();
+  ctx.strokeStyle=C.blue; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(kx,ky); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=C.ink; ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fill();
+  // arm labels, pushed outward from the axle
+  ctx.font=FONT(650,12); ctx.textBaseline='middle';
+  const ox=sx-cx, oy=sy-cy, ol=Math.hypot(ox,oy)||1;
+  const sTxt=`String arm ${q.rs.toFixed(2)}"`, tw=ctx.measureText(sTxt).width;
+  ctx.fillStyle=C.ink; ctx.textAlign='left'; halo(sTxt,clamp(sx+ox/ol*8-tw*0.6,6,w-tw-6),sy+oy/ol*10-14);
+  ctx.fillStyle=C.blue; ctx.textAlign='left'; halo(`Cable arm ${q.rc.toFixed(2)}"`,Math.max(kx,cx+S_*1.0)+10,ky-14);
+  // forces along the lines
+  ctx.font=FONT(600,12);
+  const mx=sx+sdx*sL*0.55, my=sy+sdy*sL*0.55;
+  ctx.fillStyle=C.ink; ctx.textAlign='right'; halo(`${fmt(q.Ts)} lb`,mx-10,my);
+  ctx.fillStyle=C.blue; ctx.textAlign='left'; halo(`${fmt(q.Fl)} lb`,kx+10,cy+(h-cy)*0.5);
+  // leverage + torque balance
+  const lev=1/Math.max(q.lev,1e-6);
+  ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillStyle=C.muted; ctx.font=FONT(500,11.5); ctx.fillText('Leverage',w-12,12);
+  ctx.fillStyle=C.ink; ctx.font=FONT(700,30); ctx.fillText(`${lev.toFixed(lev<10?1:0)}×`,w-12,27);
+  ctx.fillStyle=C.muted; ctx.font=FONT(500,11.5); ctx.fillText('string arm ÷ cable arm',w-12,62);
+  ctx.textBaseline='bottom'; ctx.font=FONT(600,11.5);
+  ctx.fillStyle=C.muted; ctx.fillText('Torque about the axle',w-12,h-44);
+  ctx.fillStyle=C.ink; ctx.fillText(`string ${fmt(q.Ts)} lb × ${q.rs.toFixed(2)}" = ${fmt(q.Ts*q.rs)} lb·in`,w-12,h-26);
+  ctx.fillStyle=C.blue; ctx.fillText(`cable ${fmt(q.Fl)} lb × ${q.rc.toFixed(2)}" = ${fmt(q.Fl*q.rc)} lb·in`,w-12,h-9);
+}
+
+function drawRelease(v){
+  const cv=$('#relChart'); if(!cv.clientWidth) return; const {ctx,w,h}=prep(cv);
+  const r=S.lastShot;
+  const pl=34,pr=38,pt=26,pb=26;
+  if(!r){ctx.fillStyle=C.muted;ctx.font=FONT(500,12.5);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('No shot yet',w/2,h/2);return;}
+  const tMax=r.tL*1.04, fMax=model.W*1.1, vMax=r.v*3.28084*1.1;
+  const X=t=>pl+t/tMax*(w-pl-pr), Yf=f=>h-pb-f/fMax*(h-pt-pb), Yv=s=>h-pb-s/vMax*(h-pt-pb);
+  ctx.font=FONT(500,11); ctx.textBaseline='top'; ctx.textAlign='center'; ctx.fillStyle=C.muted;
+  const msStep=r.tL*1000>16?4:2;
+  for(let ms=0;ms<=tMax*1000;ms+=msStep){ctx.fillText(String(ms),X(ms/1000),h-pb+6);}
+  ctx.textAlign='right'; ctx.fillText('ms',w-pr+30,h-pb+6);
+  ctx.strokeStyle=C.rule; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pl,h-pb+.5); ctx.lineTo(w-pr,h-pb+.5); ctx.stroke();
+  ctx.textBaseline='middle'; ctx.textAlign='right'; ctx.fillStyle=C.red;
+  ctx.fillText(String(Math.round(model.W)),pl-5,Yf(model.W)); ctx.fillText('0',pl-5,Yf(0));
+  ctx.textAlign='left'; ctx.fillStyle=C.ink; const vt=Math.floor(r.v*3.28084/50)*50;
+  ctx.fillText(String(vt),w-pr+5,Yv(vt)); ctx.fillText('0',w-pr+5,Yv(0));
+  ctx.strokeStyle=C.rule; ctx.setLineDash([2,3]); ctx.beginPath(); ctx.moveTo(pl,Yf(model.W)+.5); ctx.lineTo(w-pr,Yf(model.W)+.5); ctx.stroke(); ctx.setLineDash([]);
+  // progress
+  let tNow=r.tL;
+  if(r===S.rel&&v.mode==='release') tNow=S.simT;
+  const S_=r.S;
+  ctx.lineWidth=2.2; ctx.lineJoin='round';
+  ctx.strokeStyle=C.red; ctx.beginPath(); let first=true;
+  for(const s of S_){ if(s.t>tNow) break; const x=X(s.t),y=Yf(s.F); if(first){ctx.moveTo(x,y);first=false;} else ctx.lineTo(x,y);} ctx.stroke();
+  ctx.strokeStyle=C.ink; ctx.beginPath(); first=true;
+  for(const s of S_){ if(s.t>tNow) break; const x=X(s.t),y=Yv(s.v*3.28084); if(first){ctx.moveTo(x,y);first=false;} else ctx.lineTo(x,y);} ctx.stroke();
+  // legend
+  ctx.textAlign='left'; ctx.textBaseline='top'; ctx.font=FONT(600,11.5);
+  ctx.fillStyle=C.red; ctx.fillText('Push on arrow, lb',pl+6,pt-6); ctx.fillStyle=C.ink; ctx.fillText('Arrow speed, fps',pl+122,pt-6);
+  if(tNow>=r.tL){ctx.strokeStyle=C.muted;ctx.setLineDash([3,3]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(r.tL),pt+16);ctx.lineTo(X(r.tL),h-pb);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=C.muted; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.font=FONT(500,11); ctx.fillText('leaves string',X(r.tL)-5,h-pb-4);}
+}
+
+/* ---------------- Main loop ---------------- */
+const dirty={charts:true,settingsRev:0};
+let lastSig='', lastT=performance.now();
+function frame(now){
+  const dt=Math.min(0.05,(now-lastT)/1000); lastT=now;
+  step(dt);
+  const v=currentView();
+  const info=poseBow(v);
+  updateCamera(dt);
+  poseForces(v,info);
+  renderer.render(scene,camera);
+  // labels
+  if(settings.forces){
+    const flying=v.mode==='flight'||v.mode==='renock';
+    if(pullArrow.g.visible){ setTag(tagPull,v.mode==='release'?`Push ${fmt(v.pushF)} lb`:`Pull ${fmt(v.q.F)} lb`); placeTag(tagPull,pullArrow.tip,v.mode==='release'?20:-10,v.mode==='release'?-20:22);} else tagPull.style.display='none';
+    if(!flying&&stringArrows[0].g.visible){ setTag(tagString,`String ${fmt(v.q.Ts)} lb`); tmpA.copy(strPts[info.topCount-1]).lerp(nockP,0.62); placeTag(tagString,tmpA,-58,-6);} else tagString.style.display='none';
+    if(limbArrows[0].g.visible){ setTag(tagLimb,`Limb ${fmt(v.q.Fl)} lb`); placeTag(tagLimb,limbArrows[0].tip,44,0);} else tagLimb.style.display='none';
+  } else { tagPull.style.display=tagString.style.display=tagLimb.style.display='none'; }
+  if(S.mode==='idle'&&S.draw<0.3&&!S.grabbing) placeTag(tagGrab,nockP,-78,0); else tagGrab.style.display='none';
+  partTags.forEach((t,i)=>{ if(settings.parts&&partAnchors[PARTS[i]]) placeTag(t,partAnchors[PARTS[i]]); else t.style.display='none'; });
+  updateReadouts(v); updatePhase(v);
+  const sig=`${v.mode}|${v.x.toFixed(3)}|${(v.pushF||0).toFixed(1)}|${dirty.settingsRev}|${S.shotRev}|${settings.recurve}`;
+  if(sig!==lastSig||dirty.charts){ drawForceChart(v); drawCam(v); lastSig=sig; }
+  if(dirty.charts||v.mode==='release'||(v.mode==='flight'&&S.flightReal<0.2)) drawRelease(v);
+  dirty.charts=false;
+  requestAnimationFrame(frame);
+}
+
+/* Theme changes */
+function onTheme(){ readTheme(); applySceneTheme(); dirty.charts=true; }
+if(window.matchMedia){ const mq=window.matchMedia('(prefers-color-scheme: dark)'); (mq.addEventListener?mq.addEventListener('change',onTheme):mq.addListener(onTheme)); }
+new MutationObserver(onTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+/* Init */
+rebuildBow(); setArrowLength(); applySceneTheme();
+new ResizeObserver(resize).observe(vp);
+['#forceChart','#camChart','#relChart'].forEach(s=>new ResizeObserver(()=>{dirty.charts=true;}).observe($(s)));
+resize();
+poseBow(currentView());
+goView('three',true);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{dirty.charts=true;});
+requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>
